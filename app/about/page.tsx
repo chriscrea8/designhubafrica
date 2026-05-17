@@ -1,0 +1,9 @@
+"use client";
+import React from "react";
+import { Target, Eye, Globe, Award, Heart } from "lucide-react";
+import { Badge, Card, CardContent, Avatar } from "@/components/ui";
+export default function AboutPage() {
+  return <div><section className="py-16 lg:py-24 bg-gradient-to-br from-terracotta-50/50 to-earth-50/30"><div className="container mx-auto px-4 text-center"><Badge variant="secondary" className="mb-4 text-xs">About Us</Badge><h1 className="text-4xl lg:text-5xl font-bold max-w-3xl mx-auto">Building Africa&apos;s Largest Interior Design Ecosystem</h1><p className="mt-6 text-lg text-muted-foreground max-w-2xl mx-auto">Every African home deserves world-class design, powered by local talent.</p></div></section>
+  <section className="py-20"><div className="container mx-auto px-4 grid md:grid-cols-2 gap-12"><div><div className="h-12 w-12 rounded-xl bg-terracotta-50 text-terracotta-600 flex items-center justify-center mb-5"><Target className="h-6 w-6" /></div><h2 className="text-2xl font-bold mb-4">Our Mission</h2><p className="text-muted-foreground">Democratize access to quality interior design across Africa.</p></div><div><div className="h-12 w-12 rounded-xl bg-earth-50 text-earth-700 flex items-center justify-center mb-5"><Eye className="h-6 w-6" /></div><h2 className="text-2xl font-bold mb-4">Our Vision</h2><p className="text-muted-foreground">The go-to platform for interior design in Africa.</p></div></div></section>
+  <section className="py-20 bg-earth-900 text-white"><div className="container mx-auto px-4 grid grid-cols-2 lg:grid-cols-4 gap-8 text-center">{[{ v: "500+", l: "Designers" }, { v: "15", l: "Countries" }, { v: "2,000+", l: "Projects" }, { v: "10,000+", l: "Products" }].map((s) => <div key={s.l}><p className="text-4xl font-bold text-terracotta-400">{s.v}</p><p className="text-sm text-white/50 mt-2">{s.l}</p></div>)}</div></section></div>;
+}
