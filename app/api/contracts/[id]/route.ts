@@ -14,7 +14,6 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         project: {
           include: {
             milestones: { orderBy: { createdAt: "asc" } },
-            escrowAccount: true,
           },
         },
       },

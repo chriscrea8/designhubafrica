@@ -10,9 +10,9 @@ export async function GET(req: NextRequest) {
     const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
     const [users, designers, vendors, projects, orders, revenue] = await Promise.all([
       db.user.count(), db.designerProfile.count({ where: { approvalStatus: "APPROVED" } }), db.vendorProfile.count({ where: { approvalStatus: "APPROVED" } }),
-      db.project.count(), db.order.count(),
-      db.platformTransaction.aggregate({ where: { createdAt: { gte: thisMonth } }, _sum: { amount: true } }),
+      db.project.count(), db.order.count().catch(() => 0),
+      db.transaction.aggregate({ where: { status: "successful", createdAt: { gte: thisMonth } }, _sum: { grossAmount: true } }),
     ]);
-    return apiSuccess({ users, designers, vendors, projects, orders, revenueThisMonth: revenue._sum.amount || 0 });
+    return apiSuccess({ users, designers, vendors, projects, orders, revenueThisMonth: revenue._sum.grossAmount || 0 });
   });
 }

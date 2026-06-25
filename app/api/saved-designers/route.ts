@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
     const { error, user } = await requireAuth();
     if (error) return error;
     const saved = await db.savedDesigner.findMany({ where: { userId: user!.id }, orderBy: { createdAt: "desc" }, include: { designer: { include: { user: { select: { id: true, firstName: true, lastName: true, image: true, location: true, isVerified: true } }, _count: { select: { reviews: true } } } } } });
-    return apiSuccess(saved.map(s => s.designer));
+    return apiSuccess(saved.map((s: any) => s.designer));
   });
 }
 

@@ -49,11 +49,11 @@ export async function GET(req: NextRequest) {
       where: { designerId: profile.id, status: "COMPLETED" },
       select: { clientId: true },
     }).catch(() => []);
-    const clientCounts = projectClients.reduce((acc: Record<string,number>, p) => {
+    const clientCounts = projectClients.reduce((acc: Record<string,number>, p: any) => {
       acc[p.clientId] = (acc[p.clientId] || 0) + 1;
       return acc;
     }, {});
-    const repeatClients = Object.values(clientCounts).filter(c => c > 1).length;
+    const repeatClients = (Object.values(clientCounts) as number[]).filter(c => c > 1).length;
 
     const isVerified    = profile.verificationLevel !== "UNVERIFIED" && profile.verificationLevel !== null;
     const isApproved    = profile.approvalStatus === "APPROVED";

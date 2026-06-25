@@ -12,11 +12,10 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
         client: { select: { id: true, firstName: true, lastName: true, email: true, location: true, image: true } },
         designer: { include: { user: { select: { id: true, firstName: true, lastName: true, location: true, image: true } } } },
         milestones: { orderBy: { createdAt: "asc" } },
-        proposals: { include: { designer: { include: { user: { select: { id: true, firstName: true, lastName: true, image: true, location: true } } } } }, orderBy: { createdAt: "desc" } },
-        escrowAccount: { include: { transactions: { orderBy: { createdAt: "desc" }, take: 20 } } },
+        proposals: { include: { designer: { include: { user: { select: { id: true, firstName: true, lastName: true, image: true, location: true } } } } }, orderBy: { createdAt: "desc" }, take: 20 },
         _count: { select: { tasks: true, proposals: true, milestones: true, projectFiles: true } },
       },
-    });
+    } as any);
     if (!project) return apiError("Project not found", 404);
     // Increment view count only for designer/artisan views (not client's own project)
     const { user: viewer } = await requireAuth().catch(() => ({ user: null, error: null }));

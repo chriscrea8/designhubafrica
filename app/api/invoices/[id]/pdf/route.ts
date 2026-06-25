@@ -24,7 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   const dueStr = inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) : null;
 
   const statusColor = inv.status === "PAID" ? "#059669" : inv.status === "SENT" ? "#1d4ed8" : "#6b7280";
-  const itemRows = inv.items.map(item => `
+  const itemRows = inv.items.map((item: any) => `
     <tr>
       <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;font-weight:500">${item.itemName}</td>
       <td style="padding:12px 16px;border-bottom:1px solid #f3f4f6;color:#6b7280;font-size:13px">${item.description || ""}</td>

@@ -2,7 +2,6 @@ import { NextRequest } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { createDisputeSchema } from "@/lib/validations";
 import { parseBody, apiSuccess, apiError, getSearchParams, paginatedResponse, withErrorHandling } from "@/lib/services/api-helpers";
-import { lockEscrow } from "@/lib/services/escrow";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -26,7 +25,6 @@ export async function POST(req: NextRequest) {
     const { data, error } = await parseBody(req, createDisputeSchema);
     if (error) return error;
     const dispute = await db.dispute.create({ data: { projectId: data!.projectId, filerId: user!.id, targetId: data!.targetId, reason: data!.reason, evidence: data!.evidence || [] } });
-    try { await lockEscrow(data!.projectId, true); } catch {}
     await db.project.update({ where: { id: data!.projectId }, data: { status: "DISPUTED" } });
     return apiSuccess(dispute, 201);
   });

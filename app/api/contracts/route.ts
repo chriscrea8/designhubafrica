@@ -31,7 +31,7 @@ export async function GET(req: NextRequest) {
     });
 
     // Attach professional user info
-    const enriched = await Promise.all(contracts.map(async (c) => {
+    const enriched = await Promise.all(contracts.map(async (c: any) => {
       const professional = await db.user.findUnique({ where: { id: c.professionalId }, select: { firstName: true, lastName: true, image: true, email: true } });
       const client = await db.user.findUnique({ where: { id: c.clientId }, select: { firstName: true, lastName: true, image: true, email: true } });
       return { ...c, professional, client };

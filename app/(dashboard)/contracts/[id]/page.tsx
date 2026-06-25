@@ -101,14 +101,6 @@ function ContractContent() {
         ))}
       </CardContent></Card>
 
-      {/* Escrow Status */}
-      {contract.project?.escrowAccount && (
-        <Card><CardHeader><CardTitle className="text-base flex items-center gap-2"><Shield className="h-4 w-4" />Escrow Balance</CardTitle></CardHeader><CardContent>
-          <p className="text-3xl font-bold">{formatCurrency(contract.project.escrowAccount.balance)}</p>
-          <p className="text-sm text-muted-foreground mt-1">Funds held securely until milestone approval</p>
-        </CardContent></Card>
-      )}
-
       {/* Terms */}
       <Card><CardHeader><CardTitle className="text-base">Contract Terms</CardTitle></CardHeader><CardContent className="space-y-3 text-sm text-muted-foreground">
         <p>• All payments are held in escrow by DesignHub Africa and released only upon client approval of each milestone.</p>

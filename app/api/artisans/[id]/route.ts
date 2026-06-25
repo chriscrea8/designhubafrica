@@ -4,12 +4,19 @@ import { apiSuccess, apiError, withErrorHandling } from "@/lib/services/api-help
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
   return withErrorHandling(async () => {
-    const a = await db.artisanProfile.findUnique({ where: { id: params.id }, include: {
-      user: { select: { id: true, firstName: true, lastName: true, image: true, location: true, bio: true, isVerified: true } },
-      reviews: { take: 10, orderBy: { createdAt: "desc" }, include: { author: { select: { firstName: true, lastName: true, image: true } } } },
-      _count: { select: { reviews: true, contracts: true } },
-    }});
-    if (!a) return apiError("Not found", 404);
-    return apiSuccess(a);
+    const artisan = await db.artisanProfile.findUnique({
+      where: { id: params.id },
+      include: {
+        user:         { select: { id:true, firstName:true, lastName:true, image:true, location:true } },
+        portfolio:    { orderBy: { createdAt:"desc" } },
+        verification: { select: { status:true } },
+        artisanReviews: {
+          orderBy: { createdAt:"desc" },
+          include: { author: { select: { firstName:true, lastName:true, image:true } } },
+        },
+      },
+    });
+    if (!artisan) return apiError("Artisan not found", 404);
+    return apiSuccess(artisan);
   });
 }

@@ -106,7 +106,6 @@ model User {
   sentMessages      Message[]                @relation("MessageSender")
   notifications     Notification[]
   conversationUsers ConversationParticipant[]
-  escrowAccounts    EscrowAccount[]
   disputesFiled     Dispute[]                @relation("DisputeFiler")
   disputesAgainst   Dispute[]                @relation("DisputeTarget")
   strikes           UserStrike[]
@@ -114,8 +113,27 @@ model User {
   clientConsultations Consultation[]         @relation("ClientConsultations")
   clientInvoices      Invoice[]              @relation("ClientInvoices")
   savedProducts       SavedProduct[]         @relation("UserSavedProducts")
+  transactions        Transaction[]          @relation("UserTransactions")
+  clientBookings      ConsultationBooking[]  @relation("ClientBookings")
+  clientMilestoneInvoices MilestoneInvoice[] @relation("ClientMilestoneInvoices")
+  moodboards       Moodboard[]           @relation("ClientMoodboards")
+  businesses       Business[]            @relation("UserBusiness")
+  businessMembers  BusinessMember[]      @relation("UserBusinessMemberships")
+  siteVisits       SiteVisit[]           @relation("UserSiteVisits")
+  deliverables     Deliverable[]         @relation("UserDeliverables")
+  activityLogs     ProjectActivityLog[]  @relation("UserActivityLogs")
+  businessReviews  BusinessReview[]      @relation("ClientBusinessReviews")
+  adminAuditLogs   VerificationAuditLog[] @relation("AdminAuditLogs")
+  productInquiries ProductInquiry[]      @relation("UserInquiries")
+  vendorReviews    VendorReview[]         @relation("UserVendorReviews")
+  rfqs             RFQ[]                  @relation("ClientRFQs")
+  savedQuotes      SavedQuote[]           @relation("UserSavedQuotes")
+  marketplaceLeads MarketplaceLead[]      @relation("UserLeads")
+  journeyEvents    BuyerJourneyEvent[]    @relation("UserJourneyEvents")
+  recentSearches   RecentSearch[]         @relation("UserRecentSearches")
+  clientJobRequests   JobRequest[]           @relation("ClientJobRequests")
+  artisanReviewsGiven ArtisanReview[]        @relation("ArtisanReviewAuthor")
   supportTickets      SupportTicket[]        @relation("UserTickets")
-  payouts             Payout[]               @relation("UserPayouts")
 
   @@index([email])
   @@index([role])
@@ -173,7 +191,6 @@ model DesignerProfile {
   designerProjects Project[]             @relation("DesignerProjects")
   reviews          Review[]              @relation("ReviewDesigner")
   savedBy          SavedDesigner[]
-  earnings         Earning[]
   verification     DesignerVerification?
   subscription     Subscription?
   trustScore       TrustScore?
@@ -181,6 +198,10 @@ model DesignerProfile {
   availabilitySlots AvailabilitySlot[]
   featuredListing  FeaturedDesigner?
   invoices         Invoice[]         @relation("DesignerInvoices")
+  packages         ConsultationPackage[] @relation("DesignerPackages")
+  inspirations     Inspiration[]         @relation("DesignerInspirations")
+  designerBookings ConsultationBooking[] @relation("DesignerBookings")
+  milestoneInvoices MilestoneInvoice[]   @relation("DesignerMilestoneInvoices")
 
   @@index([approvalStatus])
   @@index([isAvailable])
@@ -258,7 +279,17 @@ model VendorProfile {
   user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   products         Product[]
   verification     VendorVerification?
-  subscription     VendorSubscription? @relation("VendorPlan")
+  subscription        VendorSubscription?    @relation("VendorPlan")
+  inquiries           ProductInquiry[]       @relation("VendorInquiries")
+  vendorReviews       VendorReview[]         @relation("VendorProfileReviews")
+  rfqs                RFQ[]                  @relation("VendorRFQs")
+  vendorQuotes        VendorQuote[]          @relation("VendorQuotes")
+  marketplaceLeads    MarketplaceLead[]      @relation("VendorLeads")
+  subscriptionsV2     VendorSubscriptionV2[] @relation("VendorSubV2")
+  promotedProducts    PromotedProduct[]      @relation("VendorPromotions")
+  featuredStores      FeaturedStore[]        @relation("VendorFeaturedStore")
+  advertisements      Advertisement[]        @relation("VendorAds")
+  promotionTxns       PromotionTransaction[] @relation("VendorPromotionTxns")
   @@index([approvalStatus])
 }
 
@@ -307,8 +338,15 @@ model ArtisanProfile {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  proposals       Proposal[] @relation("ArtisanProposals")
+  bio                String?        @db.Text
+  phone              String?
+  availabilityStatus String         @default("AVAILABLE")
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proposals          Proposal[]     @relation("ArtisanProposals")
+  portfolio          ArtisanPortfolio[]  @relation("ArtisanPortfolio")
+  verification       ArtisanVerification? @relation("ArtisanVerification")
+  artisanReviews     ArtisanReview[]     @relation("ArtisanReviews")
+  quotes             JobQuote[]          @relation("ArtisanQuotes")
   reviews         Review[]   @relation("ReviewArtisan")
   contracts       Contract[] @relation("ArtisanContracts")
 
@@ -407,21 +445,27 @@ model Project {
   clientFeeRate   Float    @default(0.05)
   designerFeeRate Float    @default(0.05)
   platformFee     Int      @default(0)
+  businessId      String?
+  timeline        String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
   client        User              @relation("ClientProjects", fields: [clientId], references: [id])
   designer      DesignerProfile?  @relation("DesignerProjects", fields: [designerId], references: [id])
+  business      Business?         @relation("BusinessProjects", fields: [businessId], references: [id])
+  siteVisits    SiteVisit[]       @relation("ProjectSiteVisits")
+  deliverables  Deliverable[]     @relation("ProjectDeliverables")
+  activityLogs  ProjectActivityLog[] @relation("ProjectActivity")
   tasks         ProjectTask[]
   proposals     Proposal[]
   milestones    Milestone[]
   projectFiles  ProjectFile[]
   conversations Conversation[]
-  escrowAccount EscrowAccount?
   disputes      Dispute[]
   contracts     Contract[]
   invoices      Invoice[]
-  reviews       Review[]         @relation("ReviewProject")
+  reviews           Review[]         @relation("ReviewProject")
+  milestoneInvoices MilestoneInvoice[] @relation("ProjectMilestoneInvoices")
 
   @@index([clientId])
   @@index([designerId])
@@ -456,8 +500,8 @@ model Milestone {
   approvedAt         DateTime?
   paidAt             DateTime?
   createdAt          DateTime            @default(now())
+  invoice            MilestoneInvoice?   @relation("MilestoneInvoice")
   project            Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  escrowTransactions EscrowTransaction[]
   @@index([projectId])
 }
 
@@ -499,37 +543,7 @@ model ProjectFile {
 
 // ── Escrow ──────────────────────────────────
 
-model EscrowAccount {
-  id           String              @id @default(cuid())
-  projectId    String              @unique
-  userId       String
-  balance      Int                 @default(0)
-  currency     String              @default("NGN")
-  isLocked     Boolean             @default(false)
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  project      Project             @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user         User                @relation(fields: [userId], references: [id])
-  transactions EscrowTransaction[]
-  @@index([projectId])
-}
 
-model EscrowTransaction {
-  id              String    @id @default(cuid())
-  escrowAccountId String
-  milestoneId     String?
-  amount          Int
-  currency        String    @default("NGN")
-  type            String
-  status          String    @default("HELD")
-  description     String?
-  paymentRef      String?
-  processedAt     DateTime?
-  createdAt       DateTime  @default(now())
-  escrowAccount   EscrowAccount @relation(fields: [escrowAccountId], references: [id], onDelete: Cascade)
-  milestone       Milestone?    @relation(fields: [milestoneId], references: [id])
-  @@index([escrowAccountId])
-}
 
 // ── Disputes ────────────────────────────────
 
@@ -576,10 +590,20 @@ model Product {
   vendorId             String
   savedByUsers         SavedProduct[]   @relation("ProductSaves")
   boosts               ProductBoost[]   @relation("ProductBoosts")
+  inquiries            ProductInquiry[]  @relation("ProductInquiries")
+  rfqs                 RFQ[]             @relation("ProductRFQs")
+  marketplaceLeads     MarketplaceLead[] @relation("ProductLeads")
+  promotedProducts     PromotedProduct[] @relation("ProductPromotions")
   name                 String
+  slug                 String?          @unique
+  brand                String?
   description          String           @db.Text
+  priceMin             Int              @default(0)
+  priceMax             Int              @default(0)
   price                Int
   currency             String           @default("NGN")
+  condition            String           @default("NEW")  // NEW | USED | REFURBISHED
+  availabilityStatus   String           @default("IN_STOCK")  // IN_STOCK | LOW_STOCK | OUT_OF_STOCK | ON_REQUEST
   categoryId           String?
   category             String
   images               String[]
@@ -589,6 +613,8 @@ model Product {
   material             String?
   color                String?
   tags                 String[]
+  viewCount            Int              @default(0)
+  favouritesCount      Int              @default(0)
   moderationStatus     String           @default("DRAFT")
   moderationNote       String?
   moderatedBy          String?
@@ -822,35 +848,9 @@ model SavedDesigner {
   @@unique([userId, designerId])
 }
 
-model Earning {
-  id          String    @id @default(cuid())
-  designerId  String
-  amount      Int
-  currency    String    @default("NGN")
-  type        String
-  description String?
-  status      String    @default("pending")
-  paymentRef  String?
-  clearedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  designer    DesignerProfile @relation(fields: [designerId], references: [id])
-  @@index([designerId])
-}
 
 // ── Platform Ledger ─────────────────────────
 
-model PlatformTransaction {
-  id          String   @id @default(cuid())
-  type        String
-  amount      Int
-  currency    String   @default("NGN")
-  description String?
-  referenceId String?
-  paymentRef  String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
-  @@index([type])
-}
 
 // ── Audit Log ───────────────────────────────
 
@@ -1027,24 +1027,6 @@ model PasswordResetToken {
   @@index([token])
 }
 
-model Payout {
-  id            String   @id @default(cuid())
-  userId        String
-  amount        Int
-  currency      String   @default("NGN")
-  status        String   @default("pending") // pending | processing | completed | failed
-  reference     String?  @unique
-  bankCode      String?
-  accountNumber String?
-  accountName   String?
-  description   String?
-  failureReason String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  user          User     @relation("UserPayouts", fields: [userId], references: [id])
-  @@index([userId])
-  @@index([status])
-}
 
 model SavedProduct {
   id        String   @id @default(cuid())
@@ -1084,4 +1066,756 @@ model ProductBoost {
   product   Product  @relation("ProductBoosts", fields: [productId], references: [id], onDelete: Cascade)
   @@index([productId])
   @@index([expiresAt])
+}
+
+model ArtisanPortfolio {
+  id          String         @id @default(cuid())
+  artisanId   String
+  imageUrl    String
+  caption     String?
+  description String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  artisan     ArtisanProfile @relation("ArtisanPortfolio", fields: [artisanId], references: [id], onDelete: Cascade)
+  @@index([artisanId])
+}
+
+model ArtisanVerification {
+  id               String         @id @default(cuid())
+  artisanId        String         @unique
+  governmentIdUrl  String?
+  selfieUrl        String?
+  addressProofUrl  String?
+  address          String?
+  status           String         @default("PENDING")
+  rejectedReason   String?
+  reviewedAt       DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  artisan          ArtisanProfile @relation("ArtisanVerification", fields: [artisanId], references: [id], onDelete: Cascade)
+  @@index([status])
+}
+
+model JobRequest {
+  id              String     @id @default(cuid())
+  clientId        String
+  title           String
+  description     String     @db.Text
+  budget          Int
+  currency        String     @default("NGN")
+  location        String
+  artisanCategory String
+  photos          String[]
+  status          String     @default("OPEN")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  client          User       @relation("ClientJobRequests", fields: [clientId], references: [id], onDelete: Cascade)
+  quotes          JobQuote[] @relation("JobRequestQuotes")
+  @@index([clientId])
+  @@index([artisanCategory])
+  @@index([status])
+}
+
+model JobQuote {
+  id           String         @id @default(cuid())
+  jobRequestId String
+  artisanId    String
+  price        Int
+  timeline     String
+  message      String         @db.Text
+  status       String         @default("PENDING")
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  jobRequest   JobRequest     @relation("JobRequestQuotes", fields: [jobRequestId], references: [id], onDelete: Cascade)
+  artisan      ArtisanProfile @relation("ArtisanQuotes", fields: [artisanId], references: [id], onDelete: Cascade)
+  @@unique([jobRequestId, artisanId])
+  @@index([jobRequestId])
+  @@index([artisanId])
+}
+
+model ArtisanReview {
+  id                    String         @id @default(cuid())
+  authorId              String
+  artisanId             String
+  jobRequestId          String?
+  rating                Int
+  comment               String         @db.Text
+  qualityRating         Int            @default(0)
+  professionalismRating Int            @default(0)
+  timelinessRating      Int            @default(0)
+  artisanResponse       String?        @db.Text
+  respondedAt           DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  author  User           @relation("ArtisanReviewAuthor", fields: [authorId], references: [id])
+  artisan ArtisanProfile @relation("ArtisanReviews", fields: [artisanId], references: [id], onDelete: Cascade)
+  @@unique([authorId, artisanId, jobRequestId])
+  @@index([artisanId])
+}
+
+// ── PAYMENT SYSTEM (NON-ESCROW, PROCESSOR-SPLIT) ──────────────────────────
+
+model ConsultationPackage {
+  id          String   @id @default(cuid())
+  designerId  String
+  title       String
+  description String?  @db.Text
+  duration    Int      // minutes
+  price       Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  designer    DesignerProfile @relation("DesignerPackages", fields: [designerId], references: [id], onDelete: Cascade)
+  bookings    ConsultationBooking[] @relation("PackageBookings")
+  @@index([designerId])
+}
+
+model ConsultationBooking {
+  id            String   @id @default(cuid())
+  clientId      String
+  designerId    String
+  packageId     String
+  scheduledAt   DateTime?
+  paymentStatus String   @default("PENDING")  // PENDING | PAID | REFUNDED
+  bookingStatus String   @default("PENDING")  // PENDING | CONFIRMED | COMPLETED | CANCELLED
+  meetingLink   String?
+  paystackRef   String?
+  grossAmount   Int
+  platformFee   Int      @default(0)
+  designerAmount Int     @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  client    User                @relation("ClientBookings", fields: [clientId], references: [id])
+  designer  DesignerProfile     @relation("DesignerBookings", fields: [designerId], references: [id])
+  package   ConsultationPackage @relation("PackageBookings", fields: [packageId], references: [id])
+  @@index([clientId])
+  @@index([designerId])
+}
+
+model Transaction {
+  id                String   @id @default(cuid())
+  userId            String
+  type              String   // consultation | project_milestone | subscription | promotion | marketplace_order
+  referenceId       String?  // booking/invoice/subscription id
+  provider          String   @default("paystack")
+  providerReference String?
+  grossAmount       Int
+  platformFee       Int      @default(0)
+  netAmount         Int
+  status            String   @default("pending")  // pending | successful | failed | refunded
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation("UserTransactions", fields: [userId], references: [id])
+  @@index([userId])
+  @@index([type])
+  @@index([status])
+  @@index([providerReference])
+}
+
+model CommissionConfig {
+  id                  String   @id @default(cuid())
+  consultationRate    Float    @default(0.20)  // 20%
+  projectRate         Float    @default(0.10)  // 10%
+  promotionRate       Float    @default(0.15)  // 15%
+  subscriptionRate    Float    @default(0.00)  // 0% (flat fee)
+  updatedAt           DateTime @updatedAt
+  updatedBy           String?
+}
+
+model MilestoneInvoice {
+  id           String   @id @default(cuid())
+  milestoneId  String   @unique
+  designerId   String
+  clientId     String
+  projectId    String
+  invoiceNumber String  @unique
+  status       String   @default("DRAFT")  // DRAFT | SENT | VIEWED | PAID | COMPLETED
+  grossAmount  Int
+  platformFee  Int      @default(0)
+  netAmount    Int
+  dueDate      DateTime?
+  paidAt       DateTime?
+  paystackRef  String?
+  viewedAt     DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  milestone    Milestone       @relation("MilestoneInvoice", fields: [milestoneId], references: [id])
+  designer     DesignerProfile @relation("DesignerMilestoneInvoices", fields: [designerId], references: [id])
+  client       User            @relation("ClientMilestoneInvoices", fields: [clientId], references: [id])
+  project      Project         @relation("ProjectMilestoneInvoices", fields: [projectId], references: [id])
+  @@index([designerId])
+  @@index([clientId])
+  @@index([status])
+}
+
+// ── PHASE 19: INSPIRATION GALLERY ──────────────────────────────────────────
+
+model Inspiration {
+  id              String   @id @default(cuid())
+  designerId      String
+  title           String
+  description     String   @db.Text
+  slug            String   @unique
+  roomType        String
+  designStyle     String
+  budgetRange     String?
+  projectLocation String?
+  projectSize     String?
+  completionDate  DateTime?
+  featuredImage   String
+  status          String   @default("DRAFT")  // DRAFT | PUBLISHED | ARCHIVED
+  isFeatured      Boolean  @default(false)
+  viewCount       Int      @default(0)
+  saveCount       Int      @default(0)
+  consultationClicks Int   @default(0)
+  projectClicks   Int      @default(0)
+  seoTitle        String?
+  seoDescription  String?
+  deletedAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  designer        DesignerProfile  @relation("DesignerInspirations", fields: [designerId], references: [id], onDelete: Cascade)
+  images          InspirationImage[] @relation("InspirationImages")
+  moodboardItems  MoodboardItem[]   @relation("InspirationMoodboards")
+  @@index([designerId])
+  @@index([status])
+  @@index([roomType])
+  @@index([designStyle])
+  @@index([isFeatured])
+}
+
+model InspirationImage {
+  id            String      @id @default(cuid())
+  inspirationId String
+  imageUrl      String
+  sortOrder     Int         @default(0)
+  createdAt     DateTime    @default(now())
+  inspiration   Inspiration @relation("InspirationImages", fields: [inspirationId], references: [id], onDelete: Cascade)
+  @@index([inspirationId])
+}
+
+model Moodboard {
+  id          String   @id @default(cuid())
+  clientId    String
+  title       String
+  description String?
+  coverImage  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  client      User     @relation("ClientMoodboards", fields: [clientId], references: [id], onDelete: Cascade)
+  items       MoodboardItem[] @relation("MoodboardItems")
+  @@index([clientId])
+}
+
+model MoodboardItem {
+  id            String      @id @default(cuid())
+  moodboardId   String
+  inspirationId String
+  createdAt     DateTime    @default(now())
+  moodboard     Moodboard   @relation("MoodboardItems", fields: [moodboardId], references: [id], onDelete: Cascade)
+  inspiration   Inspiration @relation("InspirationMoodboards", fields: [inspirationId], references: [id], onDelete: Cascade)
+  @@unique([moodboardId, inspirationId])
+  @@index([moodboardId])
+}
+
+// ── PHASE 19A: BUSINESS ACCOUNTS, VERIFICATION & PROJECT WORKSPACE ──────────
+
+model Business {
+  id                  String   @id @default(cuid())
+  ownerUserId         String
+  slug                String   @unique
+  businessType        String   // DESIGN_FIRM | VENDOR | ARTISAN_COMPANY
+  businessName        String
+  cacNumber           String?
+  businessEmail       String?
+  businessPhone       String?
+  businessDescription String?  @db.Text
+  websiteUrl          String?
+  yearEstablished     Int?
+  employeeCount       Int?
+  address             String?
+  city                String?
+  state               String?
+  country             String   @default("Nigeria")
+  googleMapsUrl       String?
+  logoUrl             String?
+  coverImageUrl       String?
+  verificationLevel   String   @default("LEVEL_0_UNVERIFIED")
+  verificationStatus  String   @default("UNVERIFIED")
+  isActive            Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  owner         User                  @relation("UserBusiness", fields: [ownerUserId], references: [id])
+  members       BusinessMember[]      @relation("BusinessMembers")
+  verification  BusinessVerification? @relation("BusinessVerif")
+  reviews       BusinessReview[]      @relation("BusinessReviews")
+  projects      Project[]             @relation("BusinessProjects")
+
+  @@index([ownerUserId])
+  @@index([businessType])
+  @@index([verificationStatus])
+}
+
+model BusinessVerification {
+  id               String    @id @default(cuid())
+  businessId       String    @unique
+  verificationLevel String   @default("LEVEL_0_UNVERIFIED")
+  status           String    @default("PENDING")
+  cacCertificateUrl String?
+  cacNumber        String?
+  businessAddressProofUrl String?
+  utilityBillUrl   String?
+  storefrontImages String[]
+  ownerIdFrontUrl  String?
+  ownerIdBackUrl   String?
+  ownerSelfieUrl   String?
+  idType           String?
+  instagramUrl     String?
+  facebookUrl      String?
+  linkedinUrl      String?
+  submittedAt      DateTime?
+  reviewedAt       DateTime?
+  reviewedBy       String?
+  rejectionReason  String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business  Business            @relation("BusinessVerif", fields: [businessId], references: [id], onDelete: Cascade)
+  auditLogs VerificationAuditLog[] @relation("VerifAuditLogs")
+}
+
+model VerificationAuditLog {
+  id             String   @id @default(cuid())
+  verificationId String
+  adminId        String
+  action         String
+  notes          String?  @db.Text
+  createdAt      DateTime @default(now())
+
+  verification BusinessVerification @relation("VerifAuditLogs", fields: [verificationId], references: [id], onDelete: Cascade)
+  admin        User                 @relation("AdminAuditLogs", fields: [adminId], references: [id])
+  @@index([verificationId])
+}
+
+model BusinessMember {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  role       String   // OWNER | ADMIN | PROJECT_MANAGER | DESIGNER | ARCHITECT | ACCOUNT_MANAGER | VIEWER
+  status     String   @default("ACTIVE")  // ACTIVE | INVITED | SUSPENDED
+  invitedBy  String?
+  joinedAt   DateTime @default(now())
+
+  business Business @relation("BusinessMembers", fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation("UserBusinessMemberships", fields: [userId], references: [id])
+  @@unique([businessId, userId])
+  @@index([businessId])
+  @@index([userId])
+}
+
+model SiteVisit {
+  id           String    @id @default(cuid())
+  projectId    String
+  scheduledBy  String
+  visitType    String    // INITIAL_INSPECTION | MEASUREMENT | MATERIAL_SELECTION | PROGRESS_REVIEW | FINAL_HANDOVER
+  visitDate    DateTime
+  notes        String?   @db.Text
+  status       String    @default("SCHEDULED")  // SCHEDULED | COMPLETED | CANCELLED | RESCHEDULED
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  project     Project @relation("ProjectSiteVisits", fields: [projectId], references: [id], onDelete: Cascade)
+  scheduledByUser User @relation("UserSiteVisits", fields: [scheduledBy], references: [id])
+  @@index([projectId])
+}
+
+model Deliverable {
+  id          String   @id @default(cuid())
+  projectId   String
+  milestoneId String?
+  uploadedBy  String
+  title       String
+  description String?  @db.Text
+  fileUrl     String
+  fileType    String
+  status      String   @default("PENDING")  // PENDING | APPROVED | REVISION_REQUESTED
+  clientNotes String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project   @relation("ProjectDeliverables", fields: [projectId], references: [id], onDelete: Cascade)
+  uploader    User      @relation("UserDeliverables", fields: [uploadedBy], references: [id])
+  @@index([projectId])
+  @@index([milestoneId])
+}
+
+model ProjectActivityLog {
+  id           String   @id @default(cuid())
+  projectId    String
+  userId       String
+  activityType String
+  message      String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  project Project @relation("ProjectActivity", fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation("UserActivityLogs", fields: [userId], references: [id])
+  @@index([projectId])
+  @@index([activityType])
+}
+
+model BusinessReview {
+  id         String   @id @default(cuid())
+  businessId String
+  clientId   String
+  projectId  String   @unique
+  rating     Int
+  review     String   @db.Text
+  createdAt  DateTime @default(now())
+
+  business Business @relation("BusinessReviews", fields: [businessId], references: [id])
+  client   User     @relation("ClientBusinessReviews", fields: [clientId], references: [id])
+  @@index([businessId])
+}
+
+// ── PHASE 20: VENDOR MARKETPLACE ADDITIONS ─────────────────────────────────
+
+model ProductInquiry {
+  id        String   @id @default(cuid())
+  productId String
+  vendorId  String
+  userId    String
+  message   String   @db.Text
+  status    String   @default("OPEN")  // OPEN | RESPONDED | CLOSED
+  response  String?  @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product     @relation("ProductInquiries", fields: [productId], references: [id], onDelete: Cascade)
+  vendor  VendorProfile @relation("VendorInquiries", fields: [vendorId], references: [id])
+  user    User          @relation("UserInquiries", fields: [userId], references: [id])
+  @@index([vendorId])
+  @@index([userId])
+  @@index([productId])
+}
+
+model VendorReview {
+  id        String   @id @default(cuid())
+  vendorId  String
+  userId    String
+  rating    Int
+  review    String   @db.Text
+  createdAt DateTime @default(now())
+
+  vendor VendorProfile @relation("VendorProfileReviews", fields: [vendorId], references: [id])
+  user   User          @relation("UserVendorReviews", fields: [userId], references: [id])
+  @@unique([vendorId, userId])
+  @@index([vendorId])
+}
+
+// ── PHASE 21: RFQ, LEAD ATTRIBUTION & MARKETPLACE INTELLIGENCE ─────────────
+
+model RFQ {
+  id               String    @id @default(cuid())
+  rfqNumber        String    @unique
+  clientId         String
+  productId        String?
+  vendorId         String?
+  title            String
+  description      String    @db.Text
+  quantity         String?
+  budgetMin        Float?
+  budgetMax        Float?
+  deliveryLocation String?
+  requiredDate     DateTime?
+  status           String    @default("SUBMITTED") // DRAFT|SUBMITTED|QUOTED|ACCEPTED|DECLINED|EXPIRED|CLOSED
+  viewCount        Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  client      User           @relation("ClientRFQs",  fields: [clientId], references: [id])
+  product     Product?       @relation("ProductRFQs", fields: [productId], references: [id])
+  vendor      VendorProfile? @relation("VendorRFQs",  fields: [vendorId],  references: [id])
+  attachments RFQAttachment[] @relation("RFQFiles")
+  quotes      VendorQuote[]  @relation("RFQQuotes")
+  leads       MarketplaceLead[] @relation("RFQLeads")
+
+  @@index([clientId])
+  @@index([status])
+  @@index([vendorId])
+}
+
+model RFQAttachment {
+  id        String   @id @default(cuid())
+  rfqId     String
+  fileUrl   String
+  fileType  String
+  fileName  String?
+  createdAt DateTime @default(now())
+
+  rfq RFQ @relation("RFQFiles", fields: [rfqId], references: [id], onDelete: Cascade)
+  @@index([rfqId])
+}
+
+model VendorQuote {
+  id                   String    @id @default(cuid())
+  quoteNumber          String    @unique
+  rfqId                String
+  vendorId             String
+  message              String    @db.Text
+  estimatedPriceMin    Float?
+  estimatedPriceMax    Float?
+  estimatedDelivery    String?
+  validUntil           DateTime?
+  status               String    @default("SUBMITTED") // DRAFT|SUBMITTED|ACCEPTED|DECLINED|EXPIRED
+  responseTimeHours    Float?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  rfq        RFQ           @relation("RFQQuotes",  fields: [rfqId],    references: [id], onDelete: Cascade)
+  vendor     VendorProfile @relation("VendorQuotes", fields: [vendorId], references: [id])
+  savedBy    SavedQuote[]  @relation("QuoteSaves")
+
+  @@index([rfqId])
+  @@index([vendorId])
+}
+
+model SavedQuote {
+  id        String   @id @default(cuid())
+  userId    String
+  quoteId   String
+  createdAt DateTime @default(now())
+
+  user  User        @relation("UserSavedQuotes", fields: [userId],  references: [id])
+  quote VendorQuote @relation("QuoteSaves",      fields: [quoteId], references: [id])
+  @@unique([userId, quoteId])
+}
+
+model MarketplaceLead {
+  id         String   @id @default(cuid())
+  leadNumber String   @unique
+  sourceType String   // PRODUCT_VIEW|PRODUCT_SAVE|STORE_VISIT|PRODUCT_INQUIRY|RFQ_SUBMITTED|QUOTE_ACCEPTED
+  userId     String?
+  vendorId   String?
+  productId  String?
+  rfqId      String?
+  status     String   @default("OPEN") // OPEN|ENGAGED|QUOTED|WON|LOST
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user    User?          @relation("UserLeads",   fields: [userId],   references: [id])
+  vendor  VendorProfile? @relation("VendorLeads", fields: [vendorId], references: [id])
+  product Product?       @relation("ProductLeads",fields: [productId],references: [id])
+  rfq     RFQ?           @relation("RFQLeads",    fields: [rfqId],    references: [id])
+
+  @@index([userId])
+  @@index([vendorId])
+  @@index([sourceType])
+}
+
+model BuyerJourneyEvent {
+  id         String   @id @default(cuid())
+  userId     String?
+  sessionId  String?
+  eventType  String   // VIEWED_PRODUCT|SAVED_PRODUCT|VIEWED_STORE|SENT_INQUIRY|SUBMITTED_RFQ|VIEWED_QUOTE|ACCEPTED_QUOTE
+  entityType String?  // product|store|rfq|quote
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation("UserJourneyEvents", fields: [userId], references: [id])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model RecentSearch {
+  id        String   @id @default(cuid())
+  userId    String
+  query     String
+  category  String?
+  createdAt DateTime @default(now())
+
+  user User @relation("UserRecentSearches", fields: [userId], references: [id])
+  @@index([userId])
+  @@unique([userId, query])
+}
+
+// ── PHASE 22: VENDOR MONETIZATION, PROMOTIONS & ADVERTISING ────────────────
+
+model VendorSubscriptionPlan {
+  id                    String   @id @default(cuid())
+  name                  String   @unique  // FREE | PRO | BUSINESS | ENTERPRISE
+  description           String?  @db.Text
+  monthlyPrice          Float    @default(0)
+  yearlyPrice           Float    @default(0)
+  maxProducts           Int      @default(20)
+  maxBoostedProducts    Int      @default(0)
+  boostCreditsMonthly   Int      @default(0)
+  featuredStoreEligible Boolean  @default(false)
+  advancedAnalytics     Boolean  @default(false)
+  prioritySupport       Boolean  @default(false)
+  badgeColor            String?
+  status                String   @default("ACTIVE")
+  sortOrder             Int      @default(0)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  subscriptions         VendorSubscriptionV2[] @relation("PlanSubscriptions")
+}
+
+model VendorSubscriptionV2 {
+  id               String    @id @default(cuid())
+  vendorId         String
+  planId           String
+  billingCycle     String    @default("MONTHLY") // MONTHLY | YEARLY
+  startDate        DateTime  @default(now())
+  endDate          DateTime
+  status           String    @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED | PAST_DUE
+  paymentReference String?
+  autoRenew        Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  vendor VendorProfile         @relation("VendorSubV2", fields: [vendorId], references: [id])
+  plan   VendorSubscriptionPlan @relation("PlanSubscriptions", fields: [planId], references: [id])
+  @@index([vendorId])
+  @@index([status])
+}
+
+model PromotionPlan {
+  id           String   @id @default(cuid())
+  name         String   @unique   // STARTER | STANDARD | PREMIUM | ELITE
+  durationDays Int
+  price        Float
+  boostScore   Int      @default(50)
+  type         String   @default("BOOST") // BOOST | FEATURED | HOMEPAGE | CATEGORY
+  description  String?
+  status       String   @default("ACTIVE")
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  promotedProducts PromotedProduct[] @relation("PlanPromotions")
+}
+
+model PromotedProduct {
+  id                String    @id @default(cuid())
+  productId         String
+  vendorId          String
+  promotionPlanId   String
+  boostScore        Int       @default(50)
+  startDate         DateTime  @default(now())
+  endDate           DateTime
+  status            String    @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
+  paymentReference  String?
+  impressions       Int       @default(0)
+  clicks            Int       @default(0)
+  createdAt         DateTime  @default(now())
+
+  product       Product       @relation("ProductPromotions",  fields: [productId],       references: [id], onDelete: Cascade)
+  vendor        VendorProfile @relation("VendorPromotions",   fields: [vendorId],         references: [id])
+  promotionPlan PromotionPlan @relation("PlanPromotions",     fields: [promotionPlanId], references: [id])
+  analytics     PromotionAnalytic[] @relation("PromotedProductAnalytics")
+  @@index([productId])
+  @@index([vendorId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model FeaturedStore {
+  id               String    @id @default(cuid())
+  vendorId         String
+  startDate        DateTime  @default(now())
+  endDate          DateTime
+  status           String    @default("ACTIVE")
+  paymentReference String?
+  impressions      Int       @default(0)
+  clicks           Int       @default(0)
+  createdAt        DateTime  @default(now())
+
+  vendor VendorProfile @relation("VendorFeaturedStore", fields: [vendorId], references: [id])
+  analytics PromotionAnalytic[] @relation("FeaturedStoreAnalytics")
+  @@index([vendorId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model AdvertisementSlot {
+  id           String   @id @default(cuid())
+  name         String
+  location     String   // HOMEPAGE_HERO | HOMEPAGE_MID | MARKETPLACE_SIDEBAR | CATEGORY_BANNER
+  price        Float
+  durationDays Int      @default(7)
+  maxActive    Int      @default(3)
+  status       String   @default("ACTIVE")
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  advertisements Advertisement[] @relation("SlotAds")
+}
+
+model Advertisement {
+  id               String    @id @default(cuid())
+  vendorId         String
+  slotId           String
+  imageUrl         String
+  linkUrl          String?
+  headline         String?
+  status           String    @default("PENDING") // PENDING | ACTIVE | EXPIRED | REJECTED
+  startDate        DateTime?
+  endDate          DateTime?
+  paymentReference String?
+  impressions      Int       @default(0)
+  clicks           Int       @default(0)
+  approvedBy       String?
+  rejectionReason  String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  vendor VendorProfile    @relation("VendorAds",  fields: [vendorId], references: [id])
+  slot   AdvertisementSlot @relation("SlotAds",   fields: [slotId],   references: [id])
+  analytics PromotionAnalytic[] @relation("AdAnalytics")
+  @@index([vendorId])
+  @@index([status])
+  @@index([endDate])
+}
+
+model PromotionTransaction {
+  id               String   @id @default(cuid())
+  vendorId         String
+  amount           Float
+  paymentProvider  String   @default("paystack") // paystack | flutterwave
+  paymentReference String?  @unique
+  status           String   @default("pending")  // pending | successful | failed
+  transactionType  String   // BOOST | FEATURED_PRODUCT | FEATURED_STORE | ADVERTISEMENT | SUBSCRIPTION
+  referenceId      String?  // promotedProduct.id / featuredStore.id / advertisement.id
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  vendor VendorProfile @relation("VendorPromotionTxns", fields: [vendorId], references: [id])
+  @@index([vendorId])
+  @@index([status])
+  @@index([transactionType])
+}
+
+model PromotionAnalytic {
+  id                String   @id @default(cuid())
+  promotedProductId String?
+  featuredStoreId   String?
+  advertisementId   String?
+  eventType         String   // IMPRESSION | CLICK | STORE_VISIT | PRODUCT_VIEW | RFQ | INQUIRY
+  userId            String?
+  sessionId         String?
+  createdAt         DateTime @default(now())
+
+  promotedProduct PromotedProduct? @relation("PromotedProductAnalytics", fields: [promotedProductId], references: [id])
+  featuredStore   FeaturedStore?   @relation("FeaturedStoreAnalytics",   fields: [featuredStoreId],   references: [id])
+  advertisement   Advertisement?   @relation("AdAnalytics",              fields: [advertisementId],   references: [id])
+
+  @@index([promotedProductId])
+  @@index([featuredStoreId])
+  @@index([advertisementId])
+  @@index([eventType])
 }

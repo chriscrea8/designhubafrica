@@ -7,7 +7,7 @@ async function main() {
 
   // Clear all tables
   console.log("Clearing existing data...");
-  const tables = ["auditLog","messageModeration","userStrike","userSuspension","clientDesignerRelationship","platformTransaction","notification","message","conversationParticipant","conversation","escrowTransaction","escrowAccount","dispute","projectFile","projectTask","proposal","milestone","contract","project","review","orderItem","order","product","productCategory","promotion","trustScore","subscription","designerVerification","vendorVerification","portfolioItem","servicePackage","earning","savedDesigner","artisanProfile","designerProfile","vendorProfile","userAdminAssignment","adminRoleConfig","session","account","verificationToken","user"];
+  const tables = ["artisanReview","jobQuote","jobRequest","artisanPortfolio","artisanVerification","consultationBooking","consultationPackage","milestoneInvoice","transaction","commissionConfig","productBoost","savedProduct","vendorSubscription","notification","message","conversationParticipant","conversation","dispute","proposal","milestone","contract","project","review","portfolioItem","servicePackage","savedDesigner","artisanProfile","designerProfile","vendorProfile","session","account","verificationToken","user"];
   for (const t of tables) { try { await (prisma as any)[t].deleteMany(); } catch {} }
   console.log("Cleared!\n");
 
@@ -15,24 +15,24 @@ async function main() {
 
   // Users
   console.log("Creating users...");
-  const admin = await prisma.user.create({ data: { firstName: "Admin", lastName: "User", email: "admin@designhub.africa", password: pw, referralCode: "DH-ADM001", role: "ADMIN", adminRole: "SUPER_ADMIN", isVerified: true, location: "Lagos, Nigeria" } });
-  const client1 = await prisma.user.create({ data: { firstName: "Adaeze", lastName: "Okafor", email: "adaeze@designhub.africa", password: pw, role: "CLIENT", referralCode: "DH-ADA001", isVerified: true, location: "Lagos, Nigeria", bio: "Homeowner looking to redesign my apartment." } });
-  const client2 = await prisma.user.create({ data: { firstName: "David", lastName: "Afolabi", email: "david@designhub.africa", password: pw, role: "CLIENT", referralCode: "DH-DAV001", isVerified: true, location: "Abuja, Nigeria" } });
-  const d1 = await prisma.user.create({ data: { firstName: "Kwame", lastName: "Mensah", email: "kwame@designhub.africa", password: pw, role: "DESIGNER", referralCode: "DH-KWA001", isVerified: true, location: "Accra, Ghana" } });
-  const d2 = await prisma.user.create({ data: { firstName: "Zara", lastName: "Ibrahim", email: "zara@designhub.africa", password: pw, role: "DESIGNER", referralCode: "DH-ZAR001", isVerified: true, location: "Nairobi, Kenya" } });
-  const art1 = await prisma.user.create({ data: { firstName: "Emeka", lastName: "Nwosu", email: "emeka@designhub.africa", password: pw, role: "ARTISAN", referralCode: "DH-EME001", isVerified: true, location: "Lagos, Nigeria" } });
-  const art2 = await prisma.user.create({ data: { firstName: "Kofi", lastName: "Asante", email: "kofi@designhub.africa", password: pw, role: "ARTISAN", referralCode: "DH-KOF001", isVerified: true, location: "Kumasi, Ghana" } });
-  const vendor = await prisma.user.create({ data: { firstName: "Tendai", lastName: "Moyo", email: "tendai@designhub.africa", password: pw, role: "VENDOR", referralCode: "DH-TEN001", isVerified: true, location: "Harare, Zimbabwe" } });
+  const admin = await prisma.user.upsert({ where: { email: "admin@designhub.africa" }, create: { firstName: "Admin", lastName: "User", email: "admin@designhub.africa", password: pw, referralCode: "DH-ADM001", role: "ADMIN", adminRole: "SUPER_ADMIN", isVerified: true, location: "Lagos, Nigeria" }, update: {} });
+  const client1 = await prisma.user.upsert({ where: { email: "adaeze@designhub.africa" }, create: { firstName: "Adaeze", lastName: "Okafor", email: "adaeze@designhub.africa", password: pw, role: "CLIENT", referralCode: "DH-ADA001", isVerified: true, location: "Lagos, Nigeria", bio: "Homeowner looking to redesign my apartment." }, update: {} });
+  const client2 = await prisma.user.upsert({ where: { email: "david@designhub.africa" }, create: { firstName: "David", lastName: "Afolabi", email: "david@designhub.africa", password: pw, role: "CLIENT", referralCode: "DH-DAV001", isVerified: true, location: "Abuja, Nigeria" }, update: {} });
+  const d1 = await prisma.user.upsert({ where: { email: "kwame@designhub.africa" }, create: { firstName: "Kwame", lastName: "Mensah", email: "kwame@designhub.africa", password: pw, role: "DESIGNER", referralCode: "DH-KWA001", isVerified: true, location: "Accra, Ghana" }, update: {} });
+  const d2 = await prisma.user.upsert({ where: { email: "zara@designhub.africa" }, create: { firstName: "Zara", lastName: "Ibrahim", email: "zara@designhub.africa", password: pw, role: "DESIGNER", referralCode: "DH-ZAR001", isVerified: true, location: "Nairobi, Kenya" }, update: {} });
+  const art1 = await prisma.user.upsert({ where: { email: "emeka@designhub.africa" }, create: { firstName: "Emeka", lastName: "Nwosu", email: "emeka@designhub.africa", password: pw, role: "ARTISAN", referralCode: "DH-EME001", isVerified: true, location: "Lagos, Nigeria" }, update: {} });
+  const art2 = await prisma.user.upsert({ where: { email: "kofi@designhub.africa" }, create: { firstName: "Kofi", lastName: "Asante", email: "kofi@designhub.africa", password: pw, role: "ARTISAN", referralCode: "DH-KOF001", isVerified: true, location: "Kumasi, Ghana" }, update: {} });
+  const vendor = await prisma.user.upsert({ where: { email: "tendai@designhub.africa" }, create: { firstName: "Tendai", lastName: "Moyo", email: "tendai@designhub.africa", password: pw, role: "VENDOR", referralCode: "DH-TEN001", isVerified: true, location: "Harare, Zimbabwe" }, update: {} });
 
   // Designer profiles
   console.log("Creating profiles...");
-  const dp1 = await prisma.designerProfile.create({ data: { userId: d1.id, specialties: ["African Fusion", "Modern", "Contemporary"], hourlyRate: 15000, currency: "GHS", yearsExperience: 12, certifications: ["BIID", "SBID"], languages: ["English", "Twi"], designTools: ["SketchUp", "AutoCAD", "3ds Max"], isAvailable: true, responseTime: "Within 2 hours", approvalStatus: "APPROVED", verificationLevel: "PREMIUM", approvedAt: new Date(), avgRating: 4.9, totalReviews: 127, completionRate: 0.96 } });
-  const dp2 = await prisma.designerProfile.create({ data: { userId: d2.id, specialties: ["Minimalist", "Scandinavian"], hourlyRate: 8000, currency: "KES", yearsExperience: 6, certifications: ["KIA"], languages: ["English", "Swahili"], designTools: ["3ds Max", "Revit"], isAvailable: true, responseTime: "Within 6 hours", approvalStatus: "APPROVED", verificationLevel: "BASIC", approvedAt: new Date(), avgRating: 4.7, totalReviews: 68, completionRate: 0.91 } });
+  const dp1 = await prisma.designerProfile.upsert({ where: { userId: (()=>{ const uid = d1.id ; return uid; })() }, create: { userId: d1.id, specialties: ["African Fusion", "Modern", "Contemporary"], hourlyRate: 15000, currency: "GHS", yearsExperience: 12, certifications: ["BIID", "SBID"], languages: ["English", "Twi"], designTools: ["SketchUp", "AutoCAD", "3ds Max"], isAvailable: true, responseTime: "Within 2 hours", approvalStatus: "APPROVED", verificationLevel: "PREMIUM", approvedAt: new Date(), avgRating: 4.9, totalReviews: 127, completionRate: 0.96 }, update: {} });
+  const dp2 = await prisma.designerProfile.upsert({ where: { userId: (()=>{ const uid = d2.id ; return uid; })() }, create: { userId: d2.id, specialties: ["Minimalist", "Scandinavian"], hourlyRate: 8000, currency: "KES", yearsExperience: 6, certifications: ["KIA"], languages: ["English", "Swahili"], designTools: ["3ds Max", "Revit"], isAvailable: true, responseTime: "Within 6 hours", approvalStatus: "APPROVED", verificationLevel: "BASIC", approvedAt: new Date(), avgRating: 4.7, totalReviews: 68, completionRate: 0.91 }, update: {} });
 
   // Artisan profiles
   console.log("Creating artisan profiles...");
-  await prisma.artisanProfile.create({ data: { userId: art1.id, serviceCategory: "carpenter", specialties: ["Custom Furniture", "Kitchen Cabinets", "Wardrobes"], hourlyRate: 8000, currency: "NGN", yearsExperience: 15, certifications: ["NABTEB"], languages: ["English", "Igbo"], tools: ["Table Saw", "Router", "CNC"], workLocations: ["Lagos", "Ibadan", "Abuja"], approvalStatus: "APPROVED", approvedAt: new Date(), avgRating: 4.8, totalReviews: 89, completionRate: 0.94} });
-  await prisma.artisanProfile.create({ data: { userId: art2.id, serviceCategory: "painter", specialties: ["Decorative Painting", "Wall Textures", "Murals"], hourlyRate: 5000, currency: "GHS", yearsExperience: 8, certifications: [], languages: ["English", "Twi"], tools: ["Spray Gun", "Roller Set"], workLocations: ["Accra", "Kumasi", "Takoradi"], approvalStatus: "APPROVED", approvedAt: new Date(), avgRating: 4.6, totalReviews: 42, completionRate: 0.92} });
+  await prisma.artisanProfile.upsert({ where: { userId: (()=>{ const uid = art1.id; return uid; })() }, create: { userId: art1.id, serviceCategory: "carpenter", specialties: ["Custom Furniture", "Kitchen Cabinets", "Wardrobes"], hourlyRate: 8000, currency: "NGN", yearsExperience: 15, certifications: ["NABTEB"], languages: ["English", "Igbo"], tools: ["Table Saw", "Router", "CNC"], workLocations: ["Lagos", "Ibadan", "Abuja"], approvalStatus: "APPROVED", approvedAt: new Date(), avgRating: 4.8, totalReviews: 89, completionRate: 0.94}, update: {} });
+  await prisma.artisanProfile.upsert({ where: { userId: (()=>{ const uid = art2.id; return uid; })() }, create: { userId: art2.id, serviceCategory: "painter", specialties: ["Decorative Painting", "Wall Textures", "Murals"], hourlyRate: 5000, currency: "GHS", yearsExperience: 8, certifications: [], languages: ["English", "Twi"], tools: ["Spray Gun", "Roller Set"], workLocations: ["Accra", "Kumasi", "Takoradi"], approvalStatus: "APPROVED", approvedAt: new Date(), avgRating: 4.6, totalReviews: 42, completionRate: 0.92}, update: {} });
 
   // Portfolios — Kwame needs 5+ for verification
   for (const item of [
@@ -96,17 +96,15 @@ async function main() {
   await prisma.milestone.create({ data: { projectId: proj2.id, title: "3D Renders", description: "3D visualization of the final kitchen design.", amount: 600000, status: "paid", paidAt: new Date("2025-03-05") } });
   await prisma.milestone.create({ data: { projectId: proj2.id, title: "Installation Supervision", description: "On-site supervision during kitchen installation.", amount: 1600000, status: "completed", completedAt: new Date() } });
 
-  // Escrow for proj1
-  const escrow = await prisma.escrowAccount.create({ data: { projectId: proj1.id, userId: client1.id, balance: 3500000 } });
-  await prisma.escrowTransaction.create({ data: { escrowAccountId: escrow.id, amount: 1500000, type: "DEPOSIT", status: "RELEASED", description: "Concept & Mood Board payment", processedAt: new Date("2025-02-15") } });
-  await prisma.escrowTransaction.create({ data: { escrowAccountId: escrow.id, amount: 2000000, type: "DEPOSIT", status: "HELD", description: "3D Visualization deposit" } });
-  await prisma.escrowTransaction.create({ data: { escrowAccountId: escrow.id, amount: 3000000, type: "DEPOSIT", status: "HELD", description: "Material Sourcing deposit" } });
+  // Payment transactions for proj1 (replaces old escrow model)
+  await prisma.transaction.create({ data: { userId: client1.id, type: "project_milestone", referenceId: proj1.id, grossAmount: 1500000, platformFee: 150000, netAmount: 1350000, status: "successful", providerReference: "ref_seed_001" } as any });
+  await prisma.transaction.create({ data: { userId: client1.id, type: "project_milestone", referenceId: proj1.id, grossAmount: 2000000, platformFee: 200000, netAmount: 1800000, status: "pending", providerReference: "ref_seed_002" } as any });
 
   // Proposal for open project
   await prisma.proposal.create({ data: { projectId: proj3.id, designerId: dp1.id, coverLetter: "I would love to work on this restaurant project. My experience with African Fusion commercial spaces makes me an ideal fit. I have completed 3 restaurant projects in the past year.", proposedRate: 18000000, deliveryDays: 60, status: "pending" } });
 
-  // Earnings
-  await prisma.earning.create({ data: { designerId: dp1.id, amount: 1425000, type: "milestone_payment", description: "Concept & Mood Board — Lekki Penthouse", status: "available" } });
+  // Designer transaction record (replaces old earning model)
+  await prisma.transaction.create({ data: { userId: d1.id, type: "project_milestone", referenceId: proj1.id, grossAmount: 1500000, platformFee: 150000, netAmount: 1350000, status: "successful" } as any });
 
   // Reviews
   await prisma.review.create({ data: { authorId: client1.id, designerId: dp1.id, targetUserId: d1.id, rating: 5, comment: "Kwame transformed our home. His attention to detail and use of African art is phenomenal.", qualityRating: 5, communicationRating: 5, timelinessRating: 4, professionalismRating: 5 } });
@@ -124,8 +122,8 @@ async function main() {
   await prisma.notification.create({ data: { userId: d1.id, type: "new_message", title: "New Message from Adaeze", message: "Adaeze sent you a message about the Lekki Penthouse.", link: "/client-messages" } });
   await prisma.notification.create({ data: { userId: client1.id, type: "system", title: "New Proposal Received", message: "Kwame Mensah submitted a proposal for V.I. Restaurant Interior.", link: "/projects" } });
 
-  // Platform transactions
-  await prisma.platformTransaction.create({ data: { type: "PROJECT_COMMISSION", amount: 75000, referenceId: proj1.id, description: "Commission: Concept & Mood Board" } });
+  // Platform commission transaction
+  await prisma.transaction.create({ data: { userId: client1.id, type: "project_milestone", referenceId: proj1.id, grossAmount: 150000, platformFee: 150000, netAmount: 0, status: "successful" } as any });
 
   // MORE OPEN PROJECTS — so designers see jobs in Find Projects
   console.log("Creating open projects for job board...");

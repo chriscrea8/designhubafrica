@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     const price = data!.billingCycle === "MONTHLY" ? PLANS[data!.plan].monthly : PLANS[data!.plan].yearly;
     const end = new Date(); end.setMonth(end.getMonth() + (data!.billingCycle === "MONTHLY" ? 1 : 12));
     const sub = await db.subscription.upsert({ where: { designerId: profile.id }, create: { designerId: profile.id, plan: data!.plan, billingCycle: data!.billingCycle, price, currentPeriodEnd: end }, update: { plan: data!.plan, billingCycle: data!.billingCycle, price, currentPeriodEnd: end, isActive: true } });
-    if (price > 0) await db.platformTransaction.create({ data: { type: "SUBSCRIPTION_PAYMENT", amount: price, referenceId: sub.id, description: `${data!.plan} — ${data!.billingCycle}` } });
+    if (price > 0) await db.transaction.create({ data: { userId: user!.id, type: "subscription", grossAmount: price, platformFee: 0, netAmount: price, referenceId: sub.id, status: "successful" } as any });
     return apiSuccess(sub);
   });
 }

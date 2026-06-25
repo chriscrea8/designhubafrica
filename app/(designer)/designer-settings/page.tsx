@@ -38,7 +38,7 @@ export default function DesignerSettingsPage() {
   useEffect(() => {
     if (session?.user?.id) {
       fetch(`/api/users/${session.user.id}`).then(r => r.json()).then(res => { if (res.success && res.data) { setForm({ firstName: res.data.firstName || "", lastName: res.data.lastName || "", phone: res.data.phone || "", location: res.data.location || "", bio: res.data.bio || "", image: res.data.image || "" }); setReferralCode(res.data.referralCode || ""); } });
-      fetch("/api/bank").then(r => r.json()).then(res => { if (res.success && res.data) { setSelectedBank({ name: res.data.bankName, code: res.data.bankCode }); setAccountNumber(res.data.accountNumber); setAccountName(res.data.accountName); setBankLocked(true); } });
+      fetch("/api/settings/bank").then(r => r.json()).then(res => { if (res.success && res.data) { setSelectedBank({ name: res.data.bankName, code: res.data.bankCode }); setAccountNumber(res.data.accountNumber); setAccountName(res.data.accountName); setBankLocked(true); } });
     }
   }, [session?.user?.id]);
 
@@ -47,7 +47,7 @@ export default function DesignerSettingsPage() {
   useEffect(() => {
     if (accountNumber.length === 10 && selectedBank?.code && !bankLocked) {
       setVerifyingAccount(true); setAccountName("");
-      fetch(`/api/bank?action=verify&account_number=${accountNumber}&bank_code=${selectedBank.code}`).then(r => r.json()).then(res => { if (res.success) setAccountName(res.data.accountName); setVerifyingAccount(false); }).catch(() => setVerifyingAccount(false));
+      fetch(`/api/settings/bank?action=verify&account_number=${accountNumber}&bank_code=${selectedBank.code}`).then(r => r.json()).then(res => { if (res.success) setAccountName(res.data.accountName); setVerifyingAccount(false); }).catch(() => setVerifyingAccount(false));
     }
   }, [accountNumber, selectedBank?.code, bankLocked]);
 
@@ -73,7 +73,7 @@ export default function DesignerSettingsPage() {
   async function handleBankSave() {
     if (!selectedBank || accountNumber.length !== 10 || !accountName) return;
     setBankSaving(true);
-    const res = await fetch("/api/bank", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankName: selectedBank.name, bankCode: selectedBank.code, accountNumber, accountName }) });
+    const res = await fetch("/api/settings/bank", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ bankName: selectedBank.name, bankCode: selectedBank.code, accountNumber, accountName }) });
     setBankSaving(false);
     const json = await res.json();
     if (json.success) { setBankSaved(true); setBankLocked(true); setTimeout(() => setBankSaved(false), 3000); }

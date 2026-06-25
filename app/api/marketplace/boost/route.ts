@@ -51,6 +51,6 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" },
       take: 8,
     });
-    return apiSuccess(boosts.map(b => b.product));
+    return apiSuccess(boosts.map((b: any) => b.product));
   });
 }

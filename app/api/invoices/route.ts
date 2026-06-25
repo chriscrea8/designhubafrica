@@ -51,3 +51,29 @@ export async function POST(req: NextRequest) {
     return apiSuccess(invoice, 201);
   });
 }
+
+// Duplicate invoice
+export async function PUT(req: NextRequest) {
+  return withErrorHandling(async () => {
+    const { error, user } = await requireAuth();
+    if (error) return error;
+    const { invoiceId } = await req.json();
+    const profile = await db.designerProfile.findUnique({ where: { userId: user!.id }, select: { id: true } });
+    if (!profile) return apiError("Designer profile required", 403);
+    const source = await db.invoice.findFirst({ where: { id: invoiceId, designerId: profile.id }, include: { items: true } });
+    if (!source) return apiError("Invoice not found", 404);
+    const dup = await db.invoice.create({
+      data: {
+        designerId: profile.id,
+        clientId: source.clientId,
+        projectId: source.projectId || null,
+        title: `${source.title} (Copy)`,
+        notes: source.notes || null,
+        totalAmount: source.totalAmount,
+        status: "DRAFT",
+        items: { create: source.items.map((item: any) => ({ itemName: item.itemName, description: item.description || null, quantity: item.quantity, unitPrice: item.unitPrice, totalPrice: item.totalPrice })) },
+      } as any,
+    });
+    return apiSuccess(dup, 201);
+  });
+}

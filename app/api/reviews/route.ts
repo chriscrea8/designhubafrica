@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       where: { designerId },
       select: { rating: true },
     });
-    const avg = allReviews.reduce((s, r) => s + r.rating, 0) / allReviews.length;
+    const avg = allReviews.reduce((s: number, r: any) => s + r.rating, 0) / allReviews.length;
     await db.designerProfile.update({
       where: { id: designerId },
       data: {

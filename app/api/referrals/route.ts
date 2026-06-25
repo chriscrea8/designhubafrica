@@ -11,8 +11,8 @@ export async function GET(req: NextRequest) {
 
     const dbUser = await db.user.findUnique({ where: { id: user!.id }, select: { referralCode: true } });
     const referrals = await db.referral.findMany({ where: { referrerId: user!.id }, orderBy: { createdAt: "desc" } });
-    const completed = referrals.filter(r => r.status === "completed" || r.status === "rewarded");
-    const totalRewards = referrals.reduce((sum, r) => sum + r.rewardAmount, 0);
+    const completed = referrals.filter((r: any) => r.status === "completed" || r.status === "rewarded");
+    const totalRewards = referrals.reduce((sum: number, r: any) => sum + r.rewardAmount, 0);
 
     return apiSuccess({
       referralCode: dbUser?.referralCode || "",

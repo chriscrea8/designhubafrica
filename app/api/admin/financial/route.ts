@@ -1,20 +1,35 @@
 import { NextRequest } from "next/server";
-import { requireRole } from "@/lib/auth";
-import { apiSuccess, withErrorHandling } from "@/lib/services/api-helpers";
 import { db } from "@/lib/db";
+import { requireAuth } from "@/lib/auth";
+import { apiSuccess, apiError, withErrorHandling } from "@/lib/services/api-helpers";
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
-    const { error } = await requireRole("ADMIN");
+    const { error, user } = await requireAuth();
     if (error) return error;
-    const thisMonth = new Date(); thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
-    const [revenue, escrowHeld, disputes, subs, recent] = await Promise.all([
-      db.platformTransaction.aggregate({ where: { createdAt: { gte: thisMonth } }, _sum: { amount: true } }),
-      db.escrowAccount.aggregate({ _sum: { balance: true } }),
-      db.dispute.count({ where: { status: { in: ["OPEN", "UNDER_REVIEW"] } } }),
-      db.subscription.groupBy({ by: ["plan"], where: { isActive: true }, _count: true }),
-      db.platformTransaction.findMany({ take: 20, orderBy: { createdAt: "desc" } }),
+    if (user!.role !== "ADMIN") return apiError("Admin only", 403);
+
+    const thisMonth = new Date();
+    thisMonth.setDate(1); thisMonth.setHours(0,0,0,0);
+
+    const [revenue, disputes, recentTxns] = await Promise.all([
+      db.transaction.aggregate({ where: { status: "successful" }, _sum: { grossAmount: true, platformFee: true } }),
+      db.dispute.count({ where: { status: { in: ["OPEN", "INVESTIGATING"] } } }),
+      db.transaction.findMany({ take: 20, orderBy: { createdAt: "desc" }, include: { user: { select: { firstName: true, lastName: true, email: true } } } }),
     ]);
-    return apiSuccess({ revenueThisMonth: revenue._sum.amount || 0, escrowHeld: escrowHeld._sum.balance || 0, openDisputes: disputes, subscriptions: subs, recentTransactions: recent });
+
+    const monthRevenue = await db.transaction.aggregate({
+      where: { status: "successful", createdAt: { gte: thisMonth } },
+      _sum: { grossAmount: true, platformFee: true },
+    });
+
+    return apiSuccess({
+      totalRevenue:     revenue._sum.grossAmount || 0,
+      totalCommission:  revenue._sum.platformFee  || 0,
+      monthRevenue:     monthRevenue._sum.grossAmount || 0,
+      monthCommission:  monthRevenue._sum.platformFee  || 0,
+      activeDisputes:   disputes,
+      recentTransactions: recentTxns,
+    });
   });
 }

@@ -15,19 +15,25 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   return withErrorHandling(async () => {
-    const { error } = await requireAuth();
+    const { error, user } = await requireAuth();
     if (error) return error;
-    const body = await req.json();
-    const invoice = await db.invoice.update({ where: { id: params.id }, data: { ...body, items: body.items ? { deleteMany: {}, create: body.items.map((item: any) => ({ itemName: item.itemName, description: item.description || "", quantity: item.quantity, unitPrice: item.unitPrice, totalPrice: item.quantity * item.unitPrice })) } : undefined } });
-    return apiSuccess(invoice);
-  });
-}
-
-export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
-  return withErrorHandling(async () => {
-    const { error } = await requireAuth();
-    if (error) return error;
-    await db.invoice.delete({ where: { id: params.id } });
-    return apiSuccess({ deleted: true });
+    const profile = await db.designerProfile.findUnique({ where: { userId: user!.id }, select: { id: true } });
+    if (!profile) return apiError("Not authorized", 403);
+    const invoice = await db.invoice.findFirst({ where: { id: params.id, designerId: profile.id } });
+    if (!invoice) return apiError("Not found", 404);
+    if (invoice.status === "PAID") return apiError("Cannot edit a paid invoice", 400);
+    const { items, ...rest } = await req.json();
+    const updated = await db.invoice.update({
+      where: { id: params.id },
+      data: { ...rest, ...(rest.dueDate ? { dueDate: new Date(rest.dueDate) } : {}), updatedAt: new Date() } as any,
+    });
+    // Update items if provided
+    if (Array.isArray(items)) {
+      await db.invoiceItem.deleteMany({ where: { invoiceId: params.id } });
+      await db.invoiceItem.createMany({ data: items.map((item: any) => ({ invoiceId: params.id, itemName: item.itemName, description: item.description||null, quantity: item.quantity, unitPrice: item.unitPrice, totalPrice: item.quantity * item.unitPrice })) });
+      const total = items.reduce((s: number, i: any) => s + i.quantity * i.unitPrice, 0);
+      await db.invoice.update({ where: { id: params.id }, data: { totalAmount: total } as any });
+    }
+    return apiSuccess(updated);
   });
 }

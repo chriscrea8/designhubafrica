@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
         },
       },
     });
-    return apiSuccess(saved.map(s => s.product));
+    return apiSuccess(saved.map((s: any) => s.product));
   });
 }
 

@@ -1,79 +1,103 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { validateWebhookSignature } from "@/lib/payments";
-import { depositToEscrow, getOrCreateEscrow } from "@/lib/services/escrow";
+import { verifyWebhookSignature } from "@/lib/payments";
 
 export async function POST(req: NextRequest) {
+  const body    = await req.text();
+  const sig     = req.headers.get("x-paystack-signature") || "";
+
+  const valid = await verifyWebhookSignature(body, sig);
+  if (!valid) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+
+  let event: any;
+  try { event = JSON.parse(body); } catch { return NextResponse.json({ ok: true }); }
+
+  if (event.event !== "charge.success") return NextResponse.json({ ok: true });
+
+  const { reference, metadata, amount } = event.data;
+  const grossAmount = amount / 100; // kobo → naira
+
+  // Idempotency: skip if already processed
+  const existing = await db.transaction.findFirst({ where: { providerReference: reference } });
+  if (existing?.status === "successful") return NextResponse.json({ ok: true });
+
+  const type = metadata?.type;
+
   try {
-    const body = await req.text();
-    const sig = req.headers.get("x-paystack-signature") || "";
-    if (!validateWebhookSignature(body, sig)) return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
-
-    const event = JSON.parse(body);
-    const { metadata, reference, amount } = event.data || {};
-    const amountNaira = Math.round((amount || 0) / 100);
-
-    if (event.event === "charge.success") {
-      // Escrow milestone funding
-      if (metadata?.milestoneId && metadata?.projectId) {
-        await getOrCreateEscrow(metadata.projectId, metadata.userId);
-        await depositToEscrow({ projectId: metadata.projectId, milestoneId: metadata.milestoneId, amount: amountNaira, paymentRef: reference }).catch(() => {});
-      }
-
-      // Consultation payment
-      if (metadata?.consultationId) {
-        await db.consultation.update({ where: { id: metadata.consultationId }, data: { status: "PAID", paymentRef: reference } });
-        const c = await db.consultation.findUnique({ where: { id: metadata.consultationId }, include: { designer: { include: { user: true } } } });
-        if (c?.designer?.userId) {
-          await db.notification.create({ data: { userId: c.designer.userId, type: "consultation_booked", title: "Consultation Booked!", message: `A client paid for a ${c.type} consultation with you.`, link: "/designer-consultations" } });
-        }
-      }
-
-      // Featured listing payment
-      if (metadata?.type === "featured_listing" && metadata?.designerId) {
-        const days = metadata.days || 7;
-        const endDate = new Date(); endDate.setDate(endDate.getDate() + days);
-        await db.featuredDesigner.upsert({ where: { designerId: metadata.designerId }, create: { designerId: metadata.designerId, startDate: new Date(), endDate, pricePaid: amountNaira, plan: metadata.plan || "STANDARD" }, update: { startDate: new Date(), endDate, pricePaid: amountNaira, plan: metadata.plan || "STANDARD", isActive: true } });
-      }
-
-      // Vendor subscription upgrade
-      if (metadata?.type === "vendor_subscription" && metadata?.vendorId) {
-        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-        await db.vendorSubscription.upsert({
-          where: { vendorId: metadata.vendorId },
-          update: { plan: metadata.plan, listingLimit: metadata.listingLimit, boostCredits: metadata.boostCredits, expiresAt, paystackRef: reference },
-          create: { vendorId: metadata.vendorId, plan: metadata.plan, listingLimit: metadata.listingLimit, boostCredits: metadata.boostCredits, expiresAt, paystackRef: reference },
-        });
-      }
-
-      // Product boost
-      if (metadata?.type === "product_boost" && metadata?.productId) {
-        const expiresAt = new Date(Date.now() + (metadata.days || 7) * 24 * 60 * 60 * 1000);
-        await db.productBoost.create({
-          data: { productId: metadata.productId, vendorId: metadata.vendorId || "", type: metadata.boostType || "BOOST", expiresAt, paystackRef: reference, isActive: true },
-        });
-        // Mark product as featured if FEATURED or HOMEPAGE
-        if (["FEATURED","HOMEPAGE"].includes(metadata.boostType)) {
-          await db.product.update({ where: { id: metadata.productId }, data: { moderationStatus: metadata.boostType } }).catch(() => {});
-        }
-      }
-
-      // Wallet topup
-      if (metadata?.type === "wallet_topup" && metadata?.userId) {
-        await db.platformTransaction.create({
-          data: { type: "WALLET_TOPUP", amount: amountNaira, referenceId: metadata.userId, description: `Wallet funded: ${reference}` },
-        });
-      }
-
-      // Marketplace order
-      if (metadata?.orderId) {
-        await db.order.update({ where: { id: metadata.orderId }, data: { status: "confirmed", paymentRef: reference, paidAt: new Date() } });
+    // ── 1. Consultation Booking ────────────────────────────────────
+    if (type === "consultation_booking" && metadata?.bookingId) {
+      await db.consultationBooking.update({
+        where: { id: metadata.bookingId },
+        data: { paymentStatus: "PAID", bookingStatus: "CONFIRMED" } as any,
+      });
+      // Reveal meeting link (if designer has set one)
+      const booking = await db.consultationBooking.findUnique({
+        where: { id: metadata.bookingId },
+        include: { designer: { select: { userId: true } }, package: { select: { title: true } } },
+      });
+      if (booking) {
+        await db.notification.create({ data: { userId: booking.clientId, type: "payment_success", title: "Consultation Confirmed!", message: `Your ${booking.package.title} consultation is confirmed`, link: `/consultations` } }).catch(() => {});
+        await db.notification.create({ data: { userId: booking.designer.userId, type: "booking_confirmed", title: "New Booking Paid", message: `A client paid for ${booking.package.title}`, link: `/designer-consultations` } }).catch(() => {});
       }
     }
 
-    return NextResponse.json({ received: true });
-  } catch (e) {
-    console.error("[Webhook Error]", e);
-    return NextResponse.json({ error: "Failed" }, { status: 500 });
+    // ── 2. Milestone Invoice ───────────────────────────────────────
+    if (type === "milestone_invoice" && metadata?.invoiceId) {
+      await db.milestoneInvoice.update({
+        where: { id: metadata.invoiceId },
+        data: { status: "PAID", paidAt: new Date() } as any,
+      });
+      if (metadata.milestoneId) {
+        await db.milestone.update({ where: { id: metadata.milestoneId }, data: { status: "paid", paidAt: new Date() } });
+      }
+      // Notify designer
+      const invoice = await db.milestoneInvoice.findUnique({
+        where: { id: metadata.invoiceId },
+        include: { designer: { select: { userId: true } }, milestone: { select: { title: true } } },
+      });
+      if (invoice) {
+        await db.notification.create({ data: { userId: invoice.designer.userId, type: "payment_received", title: "Milestone Payment Received", message: `"${invoice.milestone.title}" has been paid — ₦${invoice.netAmount.toLocaleString()} will be settled to your account`, link: `/designer-invoices` } }).catch(() => {});
+      }
+    }
+
+    // ── 3. Featured designer ────────────────────────────────────────
+    if (type === "featured_listing" && metadata?.designerId) {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await db.designerProfile.update({ where: { id: metadata.designerId }, data: { isFeatured: true, featuredUntil: expiresAt } as any });
+    }
+
+    // ── 4. Vendor subscription ──────────────────────────────────────
+    if (type === "vendor_subscription" && metadata?.vendorId) {
+      const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+      await db.vendorSubscription.upsert({
+        where: { vendorId: metadata.vendorId },
+        update: { plan: metadata.plan, listingLimit: metadata.listingLimit, boostCredits: metadata.boostCredits, expiresAt, paystackRef: reference },
+        create: { vendorId: metadata.vendorId, plan: metadata.plan, listingLimit: metadata.listingLimit, boostCredits: metadata.boostCredits, expiresAt, paystackRef: reference },
+      });
+    }
+
+    // ── 5. Product boost ────────────────────────────────────────────
+    if (type === "product_boost" && metadata?.productId) {
+      const expiresAt = new Date(Date.now() + (metadata.days || 7) * 24 * 60 * 60 * 1000);
+      await db.productBoost.create({ data: { productId: metadata.productId, vendorId: metadata.vendorId || "", type: metadata.boostType || "BOOST", expiresAt, paystackRef: reference, isActive: true } });
+    }
+
+    // ── Update transaction status ───────────────────────────────────
+    await db.transaction.updateMany({
+      where: { providerReference: reference },
+      data: { status: "successful" } as any,
+    });
+
+    // ── 6. Promotion payment (boost/featured_store) ───────────────────────
+    if (type?.startsWith("promo_")) {
+      const { activatePromotion } = await import("@/lib/services/promotion-billing");
+      await activatePromotion(reference).catch(() => {});
+    }
+
+  } catch (err) {
+    console.error("[Webhook Error]", err);
+    // Don't throw — return 200 so Paystack doesn't retry infinitely
   }
+
+  return NextResponse.json({ ok: true });
 }

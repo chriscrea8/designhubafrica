@@ -30,12 +30,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
       });
     }
 
-    // Create escrow account
-    const existingEscrow = await db.escrowAccount.findUnique({ where: { projectId: proposal.projectId } });
-    if (!existingEscrow) {
-      await db.escrowAccount.create({ data: { projectId: proposal.projectId, userId: user!.id } });
-    }
-
     // Auto-generate Contract
     const milestoneTotal = milestones.reduce((sum: number, ms: any) => sum + (ms.amount || 0), 0);
     const contractTotal = milestoneTotal || proposal.proposedRate || 0;

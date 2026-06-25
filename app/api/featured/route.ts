@@ -10,7 +10,7 @@ export async function GET() {
   return withErrorHandling(async () => {
     const now = new Date();
     const featured = await db.featuredDesigner.findMany({ where: { isActive: true, endDate: { gt: now } }, include: { designer: { include: { user: { select: { id: true, firstName: true, lastName: true, location: true, image: true, isVerified: true } }, _count: { select: { reviews: true } } } } }, orderBy: { plan: "desc" } });
-    return apiSuccess(featured.map(f => f.designer));
+    return apiSuccess(featured.map((f: any) => f.designer));
   });
 }
 

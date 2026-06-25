@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { lockEscrow } from "@/lib/services/escrow";
 import { apiSuccess, apiError, withErrorHandling } from "@/lib/services/api-helpers";
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
@@ -35,7 +34,6 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     }).catch(() => null);
 
     // Lock escrow to prevent any releases during dispute
-    await lockEscrow(ms.projectId, true).catch(() => {});
 
     // Mark milestone as disputed
     await db.milestone.update({ where: { id: params.id }, data: { status: "disputed" } });

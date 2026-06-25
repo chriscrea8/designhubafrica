@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { FolderKanban, Heart, ShoppingBag, MessageSquare, Plus, ArrowRight, Clock, TrendingUp, Wallet, Star, FileText } from "lucide-react";
+import { FolderKanban, Heart, ShoppingBag, MessageSquare, Plus, ArrowRight, Clock, TrendingUp, Star, FileText } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, Button, Badge, Progress, Avatar } from "@/components/ui";
 import { StatsCard, ProjectCard, DesignerCard } from "@/components/cards";
 import { formatCurrency, formatRelativeTime } from "@/lib/utils";
@@ -38,7 +38,6 @@ export default function DashboardPage() {
         <StatsCard title="Active Projects" value={active.length} icon={<FolderKanban className="h-5 w-5" />} />
         <StatsCard title="Total Projects" value={projects.length} icon={<TrendingUp className="h-5 w-5" />} />
         <StatsCard title="Unread" value={notifications.unread || 0} icon={<MessageSquare className="h-5 w-5" />} />
-        <StatsCard title="Wallet" value={formatCurrency(3500000)} icon={<Wallet className="h-5 w-5" />} />
       </div>
 
       {/* Quick start — if no projects */}
@@ -76,7 +75,7 @@ export default function DashboardPage() {
 
           {/* Quick Links */}
           <Card><CardHeader><CardTitle className="text-sm">Quick Links</CardTitle></CardHeader><CardContent className="grid grid-cols-2 gap-2">
-            {[{ label: "Find Designers", href: "/designers", icon: Star }, { label: "Marketplace", href: "/marketplace", icon: ShoppingBag }, { label: "Messages", href: "/messages", icon: MessageSquare }, { label: "Wallet", href: "/wallet", icon: Wallet }].map(l => (
+            {[{ label: "Find Designers", href: "/designers", icon: Star }, { label: "Marketplace", href: "/marketplace", icon: ShoppingBag }, { label: "Messages", href: "/messages", icon: MessageSquare }, { label: "Wishlist", href: "/wishlist", icon: Heart }].map(l => (
               <Link key={l.href} href={l.href} className="flex flex-col items-center gap-1.5 p-3 rounded-lg border hover:bg-accent/50 transition-colors"><l.icon className="h-4 w-4 text-terracotta-500" /><span className="text-xs font-medium">{l.label}</span></Link>
             ))}
           </CardContent></Card>
